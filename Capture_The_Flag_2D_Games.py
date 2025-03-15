@@ -878,6 +878,10 @@ def collect_results(csv_filename, num_scenarios):
     local_path = os.path.expanduser("~/Downloads/game_data.csv")  # Adjust path as needed
     game_data.to_csv(local_path, index = False)
 
+def worker(alpha1, alpha2, vel_weight, avoidance, scenario, result_queue):
+        score = run_scenario(scenario, result_queue, alpha1, alpha2, vel_weight, avoidance)
+        result_queue.put(score, alpha1, alpha2, vel_weight, avoidance)
+
 def monte_carlo(num_iterations=50):
     manager = mp.Manager()
     result_queue = manager.Queue()
@@ -885,9 +889,7 @@ def monte_carlo(num_iterations=50):
     best_params = None
     max_parallel_processes = num_threads
     
-    def worker(alpha1, alpha2, vel_weight, avoidance, scenario, result_queue):
-        score = run_scenario(scenario, result_queue, alpha1, alpha2, vel_weight, avoidance)
-        result_queue.put((score, alpha1, alpha2, vel_weight, avoidance))
+    
     
     for i in range(0, num_iterations, max_parallel_processes):
         processes = []
@@ -922,7 +924,7 @@ if __name__ == "__main__":
 
     # collect_results(csv_filename, num_scenarios)
 
-    monte_carlo(4)
+    print(monte_carlo(4))
 
 
 # if MakeMovie:
