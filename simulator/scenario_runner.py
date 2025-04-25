@@ -39,8 +39,8 @@ Max_TurboVelocity = 4
 Turbo_duration = 1.0
 Turbo_cooldown = 3.0
 dT = 0.1 # Time step
-Tpred = 1.0 # Prediction time
-Tsim = 0.2 # Simulation time
+Tpred = 1 # Prediction time
+Tsim = 0.5    # Simulation time
 N = int(Tpred/dT) # Number of time steps
 
 
@@ -58,28 +58,39 @@ def generate_random_positions(team, num_players, x_min, x_max, y_min, y_max, fla
 def generate_scenarios(n_sets):
     """
     Returns a list of n_sets tuples:
-      [ (Players1_list, Players2_list), … ]
-    where each PlayersX_list is a list of np.arrays of starting coords.
+      [ (players1_list, players2_list), … ]
+    where each playersX_list is a list of np.arrays of starting coords.
     """
     scenarios = []
-    for _ in range(n_sets):
-        p1 = generate_random_positions(
+    for i in range(n_sets):
+        # Team 1 on left half
+        players1 = generate_random_positions(
             team=1,
             num_players=Team1_players,
-            x_min=X_min, x_max=0,
-            y_min=Y_min, y_max=Y_max,
+            x_min=X_min,
+            x_max=0,
+            y_min=Y_min,
+            y_max=Y_max,
             flag_pos=Flag_Position,
             capture_radius=Capture_radius
         )
-        p2 = generate_random_positions(
+        # Team 2 on right half
+        players2 = generate_random_positions(
             team=2,
             num_players=Team2_players,
-            x_min=0, x_max=X_max,
-            y_min=Y_min, y_max=Y_max,
+            x_min=0,
+            x_max=X_max,
+            y_min=Y_min,
+            y_max=Y_max,
             flag_pos=Flag_Position,
             capture_radius=Capture_radius
         )
-        scenarios.append((p1, p2))
+        scenarios.append((players1, players2))
+
+    # Validation check
+    for idx, pair in enumerate(scenarios):
+        if not (isinstance(pair, tuple) and len(pair) == 2):
+            raise ValueError(f"Scenario {idx} must be a tuple of (players1, players2), got: {pair}")
     return scenarios
 
 # game_data = pd.DataFrame(columns=["scenario", "time", "player_id", "x", "y", "tagged", "velocity_x", "velocity_y"])
@@ -108,7 +119,7 @@ def compute_scenario_score(player_positions, flag_position, capture_radius, max_
     
     return max_score * (1 - min_distance / np.linalg.norm([X_max - X_min, Y_max - Y_min]))
 
-def run_scenario(scenario, result_queue, alpha1=10, alpha2=0.1, vel_weight=0.5, avoidance=4.0, positions=None):
+def run_scenario(scenario, result_queue, alpha1=10, alpha2=0.1, vel_weight=0.5, avoidance=4.0, attraction=20, positions=None):
 
     alpha_1_1 = alpha1
     alpha_1_2 = alpha1
@@ -306,9 +317,9 @@ def run_scenario(scenario, result_queue, alpha1=10, alpha2=0.1, vel_weight=0.5, 
         dx_1_1 = ca.norm_2(syms_x[k+1,indx_2_1]-syms_x[k+1,indx_1_1])**2
         dx_1_2 = ca.norm_2(syms_x[k+1,indx_2_1]-syms_x[k+1,indx_1_2])**2
         dx_1_3 = ca.norm_2(syms_x[k+1,indx_2_1]-syms_x[k+1,indx_1_3])**2
-        L[-1] += 20/np.pi*ca.atan(0.25*dx_1_1)
-        L[-1] += 20/np.pi*ca.atan(0.25*dx_1_2)
-        L[-1] += 20/np.pi*ca.atan(0.25*dx_1_3)
+        L[-1] += attraction/np.pi*ca.atan(0.25*dx_1_1)
+        L[-1] += attraction/np.pi*ca.atan(0.25*dx_1_2)
+        L[-1] += attraction/np.pi*ca.atan(0.25*dx_1_3)
     # Dynamics
     h2_1 = []
     h2_1.append(syms_x[0,indx_2_1[0]] - syms_x0[indx_2_1[0]])
@@ -342,9 +353,9 @@ def run_scenario(scenario, result_queue, alpha1=10, alpha2=0.1, vel_weight=0.5, 
         dx_1_1 = ca.norm_2(syms_x[k+1,indx_2_2]-syms_x[k+1,indx_1_1])**2
         dx_1_2 = ca.norm_2(syms_x[k+1,indx_2_2]-syms_x[k+1,indx_1_2])**2
         dx_1_3 = ca.norm_2(syms_x[k+1,indx_2_2]-syms_x[k+1,indx_1_3])**2
-        L[-1] += 20/np.pi*ca.atan(0.25*dx_1_1)
-        L[-1] += 20/np.pi*ca.atan(0.25*dx_1_2)
-        L[-1] += 20/np.pi*ca.atan(0.25*dx_1_3)
+        L[-1] += attraction/np.pi*ca.atan(0.25*dx_1_1)
+        L[-1] += attraction/np.pi*ca.atan(0.25*dx_1_2)
+        L[-1] += attraction/np.pi*ca.atan(0.25*dx_1_3)
     # Dynamics
     h2_2 = []
     h2_2.append(syms_x[0,indx_2_2[0]] - syms_x0[indx_2_2[0]])
@@ -378,9 +389,9 @@ def run_scenario(scenario, result_queue, alpha1=10, alpha2=0.1, vel_weight=0.5, 
         dx_1_1 = ca.norm_2(syms_x[k+1,indx_2_2]-syms_x[k+1,indx_1_1])**2
         dx_1_2 = ca.norm_2(syms_x[k+1,indx_2_2]-syms_x[k+1,indx_1_2])**2
         dx_1_3 = ca.norm_2(syms_x[k+1,indx_2_2]-syms_x[k+1,indx_1_3])**2
-        L[-1] += 20/np.pi*ca.atan(0.25*dx_1_1)
-        L[-1] += 20/np.pi*ca.atan(0.25*dx_1_2)
-        L[-1] += 20/np.pi*ca.atan(0.25*dx_1_3)
+        L[-1] += attraction/np.pi*ca.atan(0.25*dx_1_1)
+        L[-1] += attraction/np.pi*ca.atan(0.25*dx_1_2)
+        L[-1] += attraction/np.pi*ca.atan(0.25*dx_1_3)
     # Dynamics
     h2_3 = []
     h2_3.append(syms_x[0,indx_2_3[0]] - syms_x0[indx_2_3[0]])
@@ -861,131 +872,3 @@ def run_scenario(scenario, result_queue, alpha1=10, alpha2=0.1, vel_weight=0.5, 
     result_queue.put(scenario_data)
 
     return scenario_score
-
-def collect_results(csv_filename, num_scenarios):
-    manager = mp.Manager()
-    result_queue = manager.Queue()
-    max_parallel_processes = 16
-    all_data = []
-    # processes = []
-
-    # # Start parallel processes
-    # for scenario in range(num_scenarios):
-    #     p = mp.Process(target=run_scenario, args=(scenario, result_queue))
-    #     p.start()
-    #     processes.append(p)
-
-    # # Collect results from all processes
-    # all_data = []
-    # for _ in range(num_scenarios):
-    #     all_data.extend(result_queue.get())
-
-    # Ensure all processes complete
-    # for p in processes:
-    #     p.join()
-
-    for i in range(0, num_scenarios, max_parallel_processes):
-        processes = []
-        batch_size = min(max_parallel_processes, num_scenarios - i)
-        
-        # Start up to max_parallel_processes processes at a time
-        for scenario in range(i, i + batch_size):
-            p = mp.Process(target=run_scenario, args=(scenario, result_queue))
-            p.start()
-            processes.append(p)
-        
-        # Collect results from finished processes
-        for _ in range(batch_size):
-            all_data.extend(result_queue.get())
-        
-        # Ensure all processes in the batch complete
-        for p in processes:
-            p.join()
-    # Convert to DataFrame and save to CSV
-    game_data = pd.DataFrame(all_data)
-
-    if os.path.exists(csv_filename):
-        os.remove(csv_filename)
-
-    local_path = os.path.expanduser("~s/Downloads/game_data.csv")  # Adjust path as needed
-    game_data.to_csv(local_path, index = False)
-
-def worker(alpha1, alpha2, vel_weight, avoidance, scenario, result_queue, dummy_queue):
-        score = run_scenario(scenario, dummy_queue, alpha1, alpha2, vel_weight, avoidance)
-        result_queue.put((score, alpha1, alpha2, vel_weight, avoidance))
-
-def monte_carlo(num_iterations=50):
-    manager = mp.Manager()
-    result_queue = manager.Queue()
-    dummy_queue = manager.Queue()
-    best_score = -np.inf
-    best_params = None
-    max_parallel_processes = num_threads
-    
-    
-    
-    for i in range(0, num_iterations, max_parallel_processes):
-        processes = []
-        batch_size = min(max_parallel_processes, num_iterations - i)
-        
-        for _ in range(batch_size):
-            alpha1 = np.random.uniform(5, 20)
-            alpha2 = np.random.uniform(0, 0.5)
-            vel_weight = np.random.uniform(0.1, 1.0)
-            avoidance = np.random.uniform(1.0, 10.0)
-            p = mp.Process(target=worker, args=(alpha1, alpha2, vel_weight, avoidance, i, result_queue, dummy_queue))
-            p.start()
-            processes.append(p)
-        
-        for _ in range(batch_size):
-            score, alpha1, alpha2, vel_weight, avoidance = result_queue.get()
-            if score > best_score:
-                best_score = score
-                best_params = (alpha1, alpha2, vel_weight, avoidance)
-        
-        for p in processes:
-            p.join()
-    
-    print(f"Best Parameters: alpha1={best_params[0]}, alpha2={best_params[1]}, vel_weight={best_params[2]}, avoidance={best_params[3]} with score {best_score}")
-    return best_params
-
-NUM_SCENARIOS = 3  # Can increase to 5 once you have a few good layouts
-
-def objective(trial):
-    # Suggest parameters to optimize
-    alpha1 = trial.suggest_uniform('alpha1', 5.0, 20.0)
-    alpha2 = trial.suggest_uniform('alpha2', 0.0, 0.5)
-    vel_weight = trial.suggest_uniform('vel_weight', 0.1, 1.0)
-    avoidance = trial.suggest_uniform('avoidance', 1.0, 10.0)
-
-    scores = []
-    dummy_queue = mp.Manager().Queue()
-    for scenario in range(NUM_SCENARIOS):
-        # run_scenario returns the score for one scenario
-        score = run_scenario(
-            scenario,
-            dummy_queue,
-            alpha1=alpha1,
-            alpha2=alpha2,
-            vel_weight=vel_weight,
-            avoidance=avoidance
-        )
-        scores.append(score)
-
-    # maximize average score across scenarios
-    return sum(scores) / len(scores)
-
-if __name__ == '__main__':
-    study = optuna.create_study(direction='maximize')
-    study.optimize(objective, n_trials=20)
-
-    print('Best parameters:', study.best_params)
-    print('Best average score:', study.best_value)
-
-# if MakeMovie:
-#     import imageio
-#     output_filename = 'simulation_imageio.mp4'
-#     writer = imageio.get_writer(output_filename, fps=int(0.33*1/dT))
-#     for frame in Frames:
-#         writer.append_data(frame)
-#     writer.close()
