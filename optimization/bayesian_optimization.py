@@ -4,14 +4,14 @@ import optuna
 import multiprocessing as mp
 import pandas as pd
 
-NUM_SCENARIOS = 3  # Can increase to 5 once you have a few good layouts
+NUM_SCENARIOS = 2  # Can increase to 5 once you have a few good layouts
 
 SCENARIOS = generate_scenarios(NUM_SCENARIOS)
 
 def objective(trial):
     # Suggest parameters to optimize
     alpha1 = trial.suggest_uniform('alpha1', 5.0, 20.0)
-    alpha2 = trial.suggest_uniform('alpha2', 0.0, 0.5)
+    alpha2 = trial.suggest_uniform('alpha2', 0.0, 1.0)
     vel_weight = trial.suggest_uniform('vel_weight', 0.1, 1.0)
     avoidance = trial.suggest_uniform('avoidance', 1.0, 10.0)
     attraction = trial.suggest_uniform('attraction', 1.0, 30.0)
@@ -35,7 +35,7 @@ def objective(trial):
     # maximize average score across scenarios
     return sum(scores) / len(scores)
 
-def run_optimization(n_trials=10, csv_path="results.csv"):
+def run_optimization(n_trials=50, csv_path="results.csv"):
     study = optuna.create_study(direction='maximize')
     study.optimize(objective, n_trials=n_trials)
 

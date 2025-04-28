@@ -1,6 +1,7 @@
 import os
 os.system('cls')
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
 import casadi as ca
 import pandas as pd
@@ -40,7 +41,7 @@ Turbo_duration = 1.0
 Turbo_cooldown = 3.0
 dT = 0.1 # Time step
 Tpred = 1 # Prediction time
-Tsim = 0.5    # Simulation time
+Tsim = 5    # Simulation time
 N = int(Tpred/dT) # Number of time steps
 
 
@@ -839,7 +840,7 @@ def run_scenario(scenario, result_queue, alpha1=10, alpha2=0.1, vel_weight=0.5, 
             # Frames.append(image)
 
             width, height = f.canvas.get_width_height()
-            image = np.frombuffer(f.canvas.tostring_rgb(), dtype='uint8')
+            image = np.frombuffer(f.canvas.tostring_argb(), dtype='uint8')
             image = image[:width * height * 3]  # Trim extra data
             image = image.reshape((height, width, 3))
             
@@ -870,5 +871,8 @@ def run_scenario(scenario, result_queue, alpha1=10, alpha2=0.1, vel_weight=0.5, 
     scenario_score = compute_scenario_score(final_positions_np, Flag_Position, Capture_radius)
 
     result_queue.put(scenario_data)
+
+    f.clf()
+    plt.close(f)
 
     return scenario_score
